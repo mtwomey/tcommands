@@ -42,8 +42,11 @@ module.exports.process = () => {
     }
 };
 
-let commandFiles = fs.readdirSync(`${__dirname}/../commands`);
+let commandFiles;
 
-for (const commandFile of commandFiles) {
-    require(`${__dirname}/../commands/${commandFile}`);
+module.exports.loadCommands = (path) => {
+    commandFiles = fs.readdirSync(path);
+    for (const commandFile of commandFiles) {
+        require(`${path}/${commandFile}`);
+    }
 }
