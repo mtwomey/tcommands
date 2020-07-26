@@ -36,10 +36,14 @@ module.exports.getCalledValue = (command) => {
 
 
 module.exports.process = () => {
+    let recognizedCommand = false;
     for (let commandName of Object.keys(commands)) {
-        if (commands[commandName].calledValue && commands[commandName].handler)
+        if (commands[commandName].calledValue && commands[commandName].handler) {
             commands[commandName].handler();
+            recognizedCommand = true;
+        }
     }
+    return recognizedCommand;
 };
 
 let commandFiles;
