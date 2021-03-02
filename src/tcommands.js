@@ -1,56 +1,71 @@
+'use strict';
+
 const fs = require('fs');
 
 const args = process.argv.slice(2);
 
-function getArg(name) {
+function parseArg(name) {
     let i = args.indexOf(name);
     if (args[i]) {
-        if (args[i + 1]) {
-            if ((args[i + 1].startsWith('-')) && (args[i + 1] !== '-')) {
-                return true
-            }
-            return args[i + 1];
-        }
-        return true;
+        if (!args[i + 1] || isCommand(args[i + 1]))
+            return true; // Return true if the argument is called with no value (end of line or followed by another command)
+        return args[i + 1]; // Return the next argument in the command line as the "value"
     }
-    return undefined;
+    return undefined; // Argument not found at all
 }
 
 const commands = {};
+const commandNames = new Set();
 
-module.exports.register = (command) => {
+function isCommand(s) {
+    return commandNames.has(s);
+}
+
+function register(command) {
     commands[command.name] = {};
     commands[command.name].syntax = command.syntax;
     if (command.handler)
         commands[command.name].handler = command.handler;
+    if (command.helpText)
+        commands[command.name].helpText = command.helpText;
     for (let syntax of command.syntax) {
-        let calledValue = getArg(syntax);
-        if (calledValue)
-            commands[command.name].calledValue = calledValue;
+        commandNames.add(syntax);
+        let argValue = parseArg(syntax);
+        if (argValue)
+            commands[command.name].argValue = argValue;
     }
 };
 
-module.exports.getCalledValue = (command) => {
-    return commands[command].calledValue;
+function getArgValue(command) {
+    return commands[command].argValue;
 };
 
-
-module.exports.process = () => {
-    let recognizedCommand = false;
+function processCommands(config) { // Run the handlers for all commands that were passed on the command line
+    let commandProcessed = false;
     for (let commandName of Object.keys(commands)) {
-        if (commands[commandName].calledValue && commands[commandName].handler) {
+        if (commands[commandName].argValue && commands[commandName].handler) {
             commands[commandName].handler();
-            recognizedCommand = true;
+            commandProcessed = true;
         }
     }
-    return recognizedCommand;
+    if (!commandProcessed) // If no commands were processed / issued, process the default command
+        commands[config.defaultCommand].handler();
 };
 
 let commandFiles;
 
-module.exports.loadCommands = (path) => {
+function loadCommands(path) {
     commandFiles = fs.readdirSync(path);
     for (const commandFile of commandFiles) {
         require(`${path}/${commandFile}`);
     }
 }
+
+module.exports = {
+    isCommand: isCommand,
+    register: register,
+    getArgValue: getArgValue,
+    processCommands: processCommands,
+    loadCommands: loadCommands,
+    commands: commands
+};
