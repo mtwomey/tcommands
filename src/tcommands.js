@@ -15,6 +15,7 @@ function parseArg(name) {
 }
 
 const commands = {};
+const lastCommands = [];
 const commandNames = new Set();
 
 function isCommand(s) {
@@ -23,11 +24,9 @@ function isCommand(s) {
 
 function register(command) {
     commands[command.name] = {};
-    commands[command.name].syntax = command.syntax;
-    if (command.handler)
-        commands[command.name].handler = command.handler;
-    if (command.helpText)
-        commands[command.name].helpText = command.helpText;
+
+    Object.assign(commands[command.name], command);
+
     for (let syntax of command.syntax) {
         commandNames.add(syntax);
         let argValue = parseArg(syntax);
@@ -41,13 +40,35 @@ function getArgValue(command) {
 };
 
 function processCommands(config) { // Run the handlers for all commands that were passed on the command line
+    // Determine the order to process them based on any "after" statements
+    const commandsOriginal = {...commands};
+    const commandsInOrder = [];
+
+    while (Object.keys(commandsOriginal).length > 0) {
+        for (let commandName of Object.keys(commandsOriginal)) {
+            const command = commandsOriginal[commandName];
+            const afterReferences = Object.keys(commandsOriginal).filter(originalCommand => {
+                const after = commandsOriginal[originalCommand].after;
+                if (after) {
+                    return after.includes(commandName);
+                }
+                return false;
+            });
+            if (afterReferences.length === 0) {
+                commandsInOrder.unshift(commandsOriginal[commandName])
+                delete commandsOriginal[commandName];
+            }
+        }
+    }
+
     let commandProcessed = false;
-    for (let commandName of Object.keys(commands)) {
-        if (commands[commandName].argValue && commands[commandName].handler) {
-            commands[commandName].handler();
+    for (const command of commandsInOrder) {
+        if (command.argValue && command.handler) {
+            command.handler();
             commandProcessed = true;
         }
     }
+
     if (!commandProcessed) // If no commands were processed / issued, process the default command
         commands[config.defaultCommand].handler();
 };
