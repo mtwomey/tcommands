@@ -23,17 +23,22 @@ function isCommand(s) {
 }
 
 function register(command) {
-    commands[command.name] = {};
-
-    Object.assign(commands[command.name], command);
+    commands[command.name] = command;
 
     for (let syntax of command.syntax) {
         commandNames.add(syntax);
-        let argValue = parseArg(syntax);
-        if (argValue)
-            commands[command.name].argValue = argValue;
     }
 };
+
+function parseArgs() {
+    for (const command of Object.values(commands)) {
+        for (let syntax of command.syntax) {
+            let argValue = parseArg(syntax);
+            if (argValue)
+                commands[command.name].argValue = argValue;
+        }
+    }
+}
 
 function getArgValue(command) {
     return commands[command].argValue;
@@ -80,13 +85,15 @@ function loadCommands(path) {
     for (const commandFile of commandFiles) {
         require(`${path}/${commandFile}`);
     }
+    parseArgs();
 }
 
 module.exports = {
-    isCommand: isCommand,
-    register: register,
-    getArgValue: getArgValue,
-    processCommands: processCommands,
-    loadCommands: loadCommands,
-    commands: commands
+    isCommand,
+    register,
+    getArgValue,
+    processCommands,
+    loadCommands,
+    commands,
+    parseArgs
 };
