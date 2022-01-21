@@ -26,14 +26,14 @@ function register(command) {
     commands[command.name] = command;
 
     for (let syntax of command.syntax) {
-        commandNames.add(syntax);
+        commandNames.add(syntax.split(' ')[0]);
     }
 };
 
 function parseArgs() {
     for (const command of Object.values(commands)) {
         for (let syntax of command.syntax) {
-            let argValue = parseArg(syntax);
+            let argValue = parseArg(syntax.split(' ')[0]);
             if (argValue)
                 commands[command.name].argValue = argValue;
         }
